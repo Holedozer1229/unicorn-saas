@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       .eq("user_id", user.id)
       .single()
 
-    const tier = (subscription?.tier || "free") as SubscriptionTier
+    const tier = (subscription?.tier || "free")
     const limits = TIER_LIMITS[tier]
     const currentCount = await getAIGenerationCount(user.id)
 
