@@ -1,9 +1,13 @@
-type SubscriptionTier = "free" | "pro" | "enterprise"
 import { createClient } from "@/lib/supabase/server"
 import { generateText, Output } from "ai"
 import { z } from "zod"
 import { trackAIGeneration, getAIGenerationCount } from "@/lib/redis"
 import { TIER_LIMITS } from "@/lib/types"
+
+/**
+ * KEEP IN SYNC with TIER_LIMITS keys
+ */
+export type SubscriptionTier = "free" | "pro" | "enterprise"
 
 const ideaSchema = z.object({
   ideas: z.array(
@@ -18,6 +22,7 @@ const ideaSchema = z.object({
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
+
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -26,19 +31,22 @@ export async function POST(request: Request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Check subscription limits
+    // Get subscription tier
     const { data: subscription } = await supabase
       .from("subscriptions")
       .select("tier")
       .eq("user_id", user.id)
       .single()
 
-    const rawTier = subscription?.tier ?? "free"
+    const rawTier = subscription?.tier
 
+    // Normalize + enforce type safety
     const tier: SubscriptionTier =
-     rawTier === "pro" || rawTier === "enterprise" || rawTier === "free"
-       ? rawTier
-       : "free"
+      rawTier === "pro" ||
+      rawTier === "enterprise" ||
+      rawTier === "free"
+        ? rawTier
+        : "free"
 
     const limits = TIER_LIMITS[tier]
     const currentCount = await getAIGenerationCount(user.id)
