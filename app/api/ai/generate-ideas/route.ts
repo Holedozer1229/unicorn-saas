@@ -7,7 +7,7 @@ import { TIER_LIMITS } from "@/lib/types"
 /**
  * KEEP IN SYNC with TIER_LIMITS keys
  */
-export type SubscriptionTier = "free" | "pro" | "enterprise"
+export type SubscriptionTier = "free" | "creator" | "pro"
 
 const ideaSchema = z.object({
   ideas: z.array(
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     // Normalize + enforce type safety
     const tier: SubscriptionTier =
       rawTier === "pro" ||
-      rawTier === "enterprise" ||
+      rawTier === "creator" ||
       rawTier === "free"
         ? rawTier
         : "free"
