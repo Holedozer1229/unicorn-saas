@@ -1,3 +1,4 @@
+type SubscriptionTier = "free" | "pro" | "enterprise"
 import { createClient } from "@/lib/supabase/server"
 import { generateText, Output } from "ai"
 import { z } from "zod"
