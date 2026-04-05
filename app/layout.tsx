@@ -14,16 +14,17 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "CreatorOS - AI-Powered Creator Growth Platform",
+  title: "Creator Capital Markets OS - AI-Powered Content Strategy Platform",
   description:
-    "Your all-in-one platform for AI-powered content ideas, scheduling, monetization strategies, and analytics. Grow your creator business with intelligent tools.",
+    "Generate viral content strategies, discover top creators, track growth metrics, and optimize monetization. The AI-powered operating system for creator capital markets.",
   keywords: [
     "creator tools",
     "content creation",
     "AI content",
-    "social media management",
+    "viral content",
     "monetization",
-    "analytics",
+    "creator market",
+    "content strategy",
   ],
 }
 
