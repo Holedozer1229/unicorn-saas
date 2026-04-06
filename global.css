@@ -1,0 +1,16 @@
+body {
+  background: radial-gradient(circle at top, #0b0b14, #05050a);
+  color: white;
+  font-family: ui-sans-serif;
+}
+
+.glass {
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+}
+
+.glow {
+  box-shadow: 0 0 40px rgba(140, 80, 255, 0.3);
+}
