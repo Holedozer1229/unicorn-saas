@@ -1,44 +1,47 @@
-import { ImageResponse } from "@vercel/og";
+import { ImageResponse } from '@vercel/og';
+import { NextRequest } from 'next/server';
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
+export const runtime = 'edge';   // Required for @vercel/og
 
-  const score = searchParams.get("score") || "0";
-  const idea = searchParams.get("idea") || "";
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  
+  // Extract any query parameters you need (e.g., score, idea, etc.)
+  const score = searchParams.get('score') || '0';
+  const idea = searchParams.get('idea') || 'Your Idea';
 
   return new ImageResponse(
     (
       <div
         style={{
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
-          height: "100%",
-          background: "black",
-          color: "white",
-          padding: 60
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(to bottom, #000000, #1a0033)',
+          color: '#ffffff',
+          fontFamily: 'sans-serif',
         }}
       >
-        <div style={{ fontSize: 28, color: "#22d3ee" }}>
+        <div style={{ fontSize: 80, fontWeight: 'bold' }}>
           Unicorn OS
         </div>
-
-        <div style={{ fontSize: 64, fontWeight: 700, marginTop: 40 }}>
-          {score}/100
+        <div style={{ fontSize: 48, marginTop: 20 }}>
+          Prediction
         </div>
-
-        <div style={{ fontSize: 28, opacity: 0.6, marginTop: 30 }}>
+        <div style={{ fontSize: 120, marginTop: 40 }}>
+          {score}
+        </div>
+        <div style={{ fontSize: 36, opacity: 0.8, marginTop: 20 }}>
           {idea}
-        </div>
-
-        <div style={{ marginTop: "auto", opacity: 0.4 }}>
-          unicorn-os.vercel.app
         </div>
       </div>
     ),
     {
       width: 1200,
-      height: 630
+      height: 630,
     }
   );
 }
