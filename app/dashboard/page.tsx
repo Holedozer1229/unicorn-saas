@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import UnicornOSLogo from "@/components/ui/UnicornOSLogo";
 import { generateShareText } from "@/lib/utils";
 
 export default function UnicornOSDashboard() {
@@ -10,6 +11,8 @@ export default function UnicornOSDashboard() {
   const [step, setStep] = useState(0);
   const [animatedScore, setAnimatedScore] = useState(0);
   const [streamedText, setStreamedText] = useState("");
+  const [customerId, setCustomerId] = useState<string | null>(null); // Replace with real auth/DB fetch
+  const [userTier, setUserTier] = useState<'free' | 'creator' | 'pro'>('free');
 
   const steps = [
     "Scanning attention graphs...",
@@ -19,8 +22,8 @@ export default function UnicornOSDashboard() {
     "Finalizing holographic prediction..."
   ];
 
-  async function runSimulation() {
-    if (!idea.trim()) return;
+  const runSimulation = useCallback(async () => {
+    if (!idea.trim() || loading) return;
 
     setLoading(true);
     setResult(null);
@@ -28,10 +31,9 @@ export default function UnicornOSDashboard() {
     setStep(0);
     setAnimatedScore(0);
 
-    // Intelligence pipeline
     for (let i = 0; i < steps.length; i++) {
       setStep(i);
-      await new Promise((resolve) => setTimeout(resolve, 680));
+      await new Promise((resolve) => setTimeout(resolve, 620));
     }
 
     try {
@@ -62,74 +64,100 @@ export default function UnicornOSDashboard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [idea, loading]);
 
-  // Animate score
   useEffect(() => {
     if (!result?.score) return;
 
     let current = 0;
     const target = Math.floor(result.score);
     const interval = setInterval(() => {
-      current += Math.max(1, Math.floor((target - current) / 7));
+      current += Math.max(2, Math.floor((target - current) / 6));
       if (current >= target) {
         current = target;
         clearInterval(interval);
       }
       setAnimatedScore(current);
-    }, 28);
+    }, 32);
 
     return () => clearInterval(interval);
   }, [result]);
 
   const shareText = result?.score ? generateShareText(result.score) : "";
 
+  // Open Stripe Customer Portal
+  const openBillingPortal = async () => {
+    if (!customerId) {
+      alert("Please log in to manage billing.");
+      return;
+    }
+
+    if (userTier === 'free') {
+      alert("Upgrade to Creator or Pro to access billing management.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/webhook/stripe/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId }),
+      });
+
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert("Failed to open billing portal.");
+      }
+    } catch (error) {
+      console.error("Portal error:", error);
+      alert("Unable to open billing portal at this time.");
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      {/* Enhanced Holographic Background */}
+    <div className="min-h-screen bg-[#0a0a1f] text-white overflow-hidden relative font-sans">
+      {/* Cosmic Background */}
+      <div className="absolute inset-0 bg-[radial-gradient(at_center,#1a0033_0%,#000000_70%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+
+      {/* Floating Orbs */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute w-[800px] h-[800px] bg-purple-600/10 blur-[200px] top-[-300px] left-[-300px]" />
-        <div className="absolute w-[700px] h-[700px] bg-cyan-400/10 blur-[180px] bottom-[-250px] right-[-250px]" />
-        <div className="absolute w-[500px] h-[500px] bg-violet-500/5 blur-[150px] top-1/3 left-1/3" />
+        <div className="absolute top-[-15%] left-[-10%] w-[600px] h-[600px] bg-cyan-400/10 blur-[140px] rounded-full" />
+        <div className="absolute bottom-[-20%] right-[-15%] w-[520px] h-[520px] bg-purple-500/10 blur-[130px] rounded-full" />
       </div>
 
-      {/* Top Navigation Bar */}
-      <nav className="relative z-50 flex justify-between items-center px-8 py-6 border-b border-white/10 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="text-3xl">🦄</div>
-          <div className="text-2xl font-semibold tracking-tighter">Unicorn OS</div>
-        </div>
+      {/* Top Navigation */}
+      <nav className="relative z-50 flex justify-between items-center px-6 py-6 border-b border-white/10 backdrop-blur-lg">
+        <UnicornOSLogo size={52} />
 
-        <div className="flex items-center gap-6 text-sm">
-          <div className="px-4 py-1.5 text-xs rounded-full border border-white/20 text-white/60">
-            PRIVATE BETA
-          </div>
+        <div className="flex items-center gap-5">
+          <div className="hidden sm:block px-4 py-1 text-xs tracking-widest border border-cyan-400/30 rounded-full text-cyan-400">PRIVATE BETA</div>
           <button 
-            onClick={() => {/* Open Stripe Portal */}}
-            className="px-5 py-2 text-sm border border-white/30 hover:border-white/60 rounded-xl transition-colors"
+            onClick={openBillingPortal}
+            className="px-6 py-2.5 text-sm font-medium border border-white/30 hover:border-cyan-400 rounded-2xl transition-all active:bg-cyan-400/10"
           >
             Manage Billing
           </button>
         </div>
       </nav>
 
-      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-20 pb-24">
-        {/* Hero Section */}
+      <div className="relative z-10 max-w-5xl mx-auto px-5 sm:px-8 pt-16 pb-24">
+        {/* Hero */}
         <div className="text-center mb-16">
-          <h1 className="text-7xl font-bold tracking-tighter leading-none mb-6">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tighter leading-none mb-6">
             See if your idea will{" "}
-            <span className="bg-gradient-to-r from-cyan-300 via-purple-300 to-violet-300 bg-clip-text text-transparent">
-              go viral
-            </span>
+            <span className="bg-gradient-to-r from-cyan-300 via-purple-300 to-violet-300 bg-clip-text text-transparent">go viral</span>
           </h1>
-          <p className="text-xl text-white/70 max-w-2xl mx-auto">
+          <p className="text-lg sm:text-xl text-white/70 max-w-2xl mx-auto">
             Real-time audience simulation powered by SphinxOS and Holographic QAOA
           </p>
         </div>
 
-        {/* Input Area */}
+        {/* Input Panel */}
         <div className="max-w-3xl mx-auto">
-          <div className="bg-zinc-950/70 border border-white/10 rounded-3xl p-10 backdrop-blur-2xl shadow-2xl">
+          <div className="bg-zinc-950/90 border border-cyan-400/20 rounded-3xl p-8 sm:p-12 backdrop-blur-2xl shadow-2xl">
             <textarea
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
@@ -141,74 +169,63 @@ export default function UnicornOSDashboard() {
             <button
               onClick={runSimulation}
               disabled={loading || !idea.trim()}
-              className="mt-8 w-full py-4 rounded-2xl font-semibold text-lg tracking-wide
-                bg-gradient-to-r from-purple-600 via-purple-500 to-cyan-400 
-                hover:brightness-110 active:scale-[0.985] transition-all duration-200
+              className="mt-10 w-full py-5 rounded-2xl font-semibold text-lg tracking-wider
+                bg-gradient-to-r from-cyan-500 via-purple-600 to-violet-600 
+                hover:brightness-110 active:scale-[0.985] transition-all duration-300 shadow-lg shadow-cyan-500/30
                 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? "Running Holographic Simulation..." : "⚡ Run Viral Simulation"}
+              {loading ? "RUNNING HOLOGRAPHIC SIMULATION..." : "⚡ RUN VIRAL SIMULATION"}
             </button>
 
             {loading && (
-              <div className="mt-8 text-cyan-400 text-sm font-mono tracking-widest">
+              <div className="mt-8 font-mono text-cyan-400 text-sm tracking-[2px] text-center">
                 ▶ {steps[step]}
               </div>
             )}
           </div>
         </div>
 
-        {/* Results Area */}
+        {/* Results */}
         {(streamedText || result) && (
           <div className="mt-16 max-w-4xl mx-auto space-y-10">
-            {/* Live Stream */}
             {streamedText && (
-              <div className="bg-zinc-950/80 border border-white/10 rounded-3xl p-10 text-white/80 text-[15px] leading-relaxed backdrop-blur-xl">
+              <div className="bg-zinc-950/80 border border-white/10 rounded-3xl p-10 text-white/80 leading-relaxed text-[15px] backdrop-blur-xl">
                 {streamedText}
               </div>
             )}
 
-            {/* Score Card */}
             {result && (
-              <div className="bg-gradient-to-br from-zinc-950 to-black border border-white/10 rounded-3xl p-16 text-center backdrop-blur-2xl">
-                <div className="uppercase tracking-[4px] text-xs text-white/50 mb-3">VIRALITY PREDICTION</div>
-                <div className="text-[140px] font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-cyan-300 leading-none">
+              <div className="border border-cyan-400/30 bg-gradient-to-br from-zinc-950 to-black rounded-3xl p-14 text-center backdrop-blur-2xl">
+                <div className="uppercase tracking-[4px] text-xs text-cyan-400/80 mb-2">VIRALITY PREDICTION SCORE</div>
+                <div className="text-[128px] font-bold leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-300 to-purple-300">
                   {animatedScore}
                 </div>
-                <div className="text-3xl text-white/40 -mt-4">/ 100</div>
+                <div className="text-3xl text-white/50 -mt-6">/ 100</div>
 
                 {animatedScore >= 85 && (
-                  <div className="mt-8 text-2xl text-green-400 font-medium animate-pulse">
-                    🔥 HIGH VIRAL POTENTIAL DETECTED
-                  </div>
-                )}
-                {animatedScore <= 40 && (
-                  <div className="mt-8 text-xl text-red-400">Low engagement risk detected</div>
+                  <div className="mt-8 text-3xl font-medium text-green-400 animate-pulse">🔥 HIGH VIRAL POTENTIAL DETECTED</div>
                 )}
               </div>
             )}
 
-            {/* Insights */}
             {result && (
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-zinc-950/70 border border-white/10 rounded-3xl p-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-zinc-950/80 border border-purple-400/20 rounded-3xl p-10">
                   <div className="text-purple-400 font-semibold mb-4 text-lg">Holographic Insight</div>
                   <p className="text-white/80 leading-relaxed">{result.insight || "Structural coherence analyzed via holographic regularization."}</p>
                 </div>
 
-                <div className="bg-zinc-950/70 border border-white/10 rounded-3xl p-10">
+                <div className="bg-zinc-950/80 border border-cyan-400/20 rounded-3xl p-10">
                   <div className="text-cyan-400 font-semibold mb-4 text-lg">Recommended Viral Upgrades</div>
                   <ul className="space-y-4 text-white/80 text-[15px]">
                     {result.improvements?.map((item: string, i: number) => (
-                      <li key={i} className="flex gap-3">
-                        <span className="text-cyan-400 mt-1">•</span> {item}
-                      </li>
+                      <li key={i} className="flex gap-3">• {item}</li>
                     )) || <li>Advanced upgrades available in Creator and Pro tiers.</li>}
                   </ul>
                 </div>
               </div>
             )}
 
-            {/* Share Section */}
             {result && (
               <div className="text-center pt-8">
                 <button
@@ -216,22 +233,18 @@ export default function UnicornOSDashboard() {
                     navigator.clipboard.writeText(shareText);
                     alert("Share text copied to clipboard");
                   }}
-                  className="px-12 py-4 bg-white text-black rounded-2xl font-semibold text-lg hover:bg-white/90 transition flex items-center gap-3 mx-auto"
+                  className="px-12 py-4 bg-white text-black rounded-2xl font-semibold text-lg hover:bg-white/90 transition flex items-center gap-3 mx-auto active:scale-95"
                 >
                   🚀 Share Result
                 </button>
-                <p className="text-xs text-white/40 mt-4 tracking-wide">
-                  Sharing this result unlocks deeper prediction models
-                </p>
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Footer */}
-      <div className="text-center text-xs text-white/30 pb-16">
-        Unicorn OS • Attention Intelligence System • Powered by SphinxOS + Holographic QAOA • Private Beta v0.1
+      <div className="text-center text-xs text-white/40 pb-12">
+        UNICORN OS • THE INTELLIGENCE OPERATING SYSTEM • POWERED BY SPHINXOS + HOLOGRAPHIC QAOA
       </div>
     </div>
   );
