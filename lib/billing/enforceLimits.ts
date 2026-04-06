@@ -1,5 +1,5 @@
 import { getUsage, incrementUsage } from "@/lib/redis"
-import { TIER_LIMITS } from "./tiers"
+import { TIER_LIMITS } from "@/lib/billing/tiers"
 
 export async function enforceAICap(
   userId: string,
@@ -7,7 +7,9 @@ export async function enforceAICap(
 ) {
   const limit = TIER_LIMITS[tier].aiGenerationsPerMonth
 
-  if (limit === -1) return { allowed: true }
+  if (limit === -1) {
+    return { allowed: true }
+  }
 
   const usage = await getUsage(userId)
 
