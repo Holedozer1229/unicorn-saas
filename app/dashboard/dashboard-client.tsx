@@ -9,7 +9,7 @@ export function DashboardClient({
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center gap-3 text-2xl font-bold">
-        🦄 CreatorOS Dashboard
+        🦄 UnicornOS Dashboard
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -26,7 +26,7 @@ export function DashboardClient({
       <div className="border rounded-xl p-6">
         <h2 className="font-semibold">Welcome back, {profile?.name}</h2>
         <p className="text-sm text-gray-500">
-          Unicorn SaaS is now running on CreatorOS billing engine.
+          Unicorn SaaS is now running on UnicornOS billing engine.
         </p>
       </div>
     </div>

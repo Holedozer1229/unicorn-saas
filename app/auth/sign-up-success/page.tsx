@@ -1,40 +1,30 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Mail, Sparkles } from "lucide-react"
+import { Mail } from "lucide-react"
+import UnicornOSLogo from "@/components/ui/UnicornOSLogo"
 
 export default function SignUpSuccessPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-      <Card className="w-full max-w-md text-center">
-        <CardHeader className="space-y-1">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <Mail className="h-6 w-6 text-primary-foreground" />
+    <div className="flex min-h-screen items-center justify-center px-4 circuit-grid starfield">
+      <div className="pointer-events-none fixed inset-0">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-[#00d4ff]/6 blur-[100px]" />
+      </div>
+      <div className="relative z-10 w-full max-w-md">
+        <div className="mb-8 flex justify-center"><UnicornOSLogo size={40} /></div>
+        <div className="cosmic-card gradient-border rounded-2xl p-8 text-center">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[rgba(0,200,255,0.1)] border border-[rgba(0,200,255,0.25)] glow-primary">
+            <Mail className="h-8 w-8 text-[#00d4ff]" />
           </div>
-          <CardTitle className="text-2xl">Check your email</CardTitle>
-          <CardDescription>
-            {"We've sent you a confirmation link to verify your account"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Click the link in the email to complete your registration and start
-            using CreatorOS. The link will expire in 24 hours.
+          <h1 className="text-2xl font-black text-white mb-2">Check your email</h1>
+          <p className="text-sm text-white/50 mb-6">We&apos;ve sent you a confirmation link to verify your account</p>
+          <p className="text-sm text-white/40 mb-8">
+            Click the link in the email to complete your registration and start using UnicornOS. The link will expire in 24 hours.
           </p>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-          <Button asChild variant="outline" className="w-full">
+          <Button asChild variant="outline" className="w-full border-[rgba(0,200,255,0.2)] text-white/70 hover:border-[#00d4ff] hover:text-[#00d4ff] hover:bg-[rgba(0,200,255,0.05)] rounded-xl transition-all">
             <Link href="/auth/login">Back to Sign In</Link>
           </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }
