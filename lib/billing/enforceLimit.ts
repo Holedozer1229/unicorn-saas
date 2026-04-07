@@ -4,18 +4,26 @@ export function enforceAICap(
   tokens: number
 ) {
   const limits = {
-    free: 10,
-    creator: 100,
-    pro: 1000,
+    free: 10_000,
+    creator: 100_000,
+    pro: 1_000_000,
   };
 
-  if (usage >= limits[tier as keyof typeof limits]) {
-    return { allowed: false, reason: "Daily limit reached" };
+  const limit =
+    limits[tier as keyof typeof limits] ?? limits.free;
+
+  const remaining = limit - usage;
+
+  if (remaining <= 0) {
+    return {
+      allowed: false,
+      remaining: 0,
+      reason: "Daily limit reached",
+    };
   }
 
-  return { allowed: true };
-}
+  return {
     allowed: true,
-    remaining: remaining - 1,
-  }
+    remaining: remaining - tokens,
+  };
 }
