@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import {
-  BarChart3,
   TrendingUp,
   Lightbulb,
   Calendar,
@@ -13,13 +12,14 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react"
-import { TIER_LIMITS } from "@/lib/types"
+import { TIER_LIMITS, SubscriptionTier } from "@/lib/types"
 import { getAIGenerationCount } from "@/lib/redis"
 import { subDays, format, startOfDay, eachDayOfInterval } from "date-fns"
 import { AnalyticsChart } from "./analytics-chart"
 
 export default async function AnalyticsPage() {
   const supabase = await createClient()
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -33,31 +33,33 @@ export default async function AnalyticsPage() {
     { data: ideas },
     { data: plans },
     { data: suggestions },
-    { data: usageEvents },
   ] = await Promise.all([
     supabase.from("subscriptions").select("*").eq("user_id", user.id).single(),
     supabase.from("content_ideas").select("*").eq("user_id", user.id),
     supabase.from("content_plans").select("*").eq("user_id", user.id),
     supabase.from("monetization_suggestions").select("*").eq("user_id", user.id),
-    supabase
-      .from("usage_events")
-      .select("*")
-      .eq("user_id", user.id)
-      .gte("created_at", subDays(new Date(), 30).toISOString())
-      .order("created_at", { ascending: true }),
   ])
 
-  const tier = subscription?.tier || "free"
+  // ✅ FIXED TIER NORMALIZATION (critical)
+  const rawTier = subscription?.tier
+
+  const tier: SubscriptionTier =
+    rawTier === "free" ||
+    rawTier === "creator" ||
+    rawTier === "pro"
+      ? rawTier
+      : "free"
+
   const limits = TIER_LIMITS[tier]
+
   const aiGenerations = await getAIGenerationCount(user.id)
 
-  // Calculate stats
   const totalIdeas = ideas?.length || 0
-  const publishedContent = plans?.filter((p) => p.status === "published").length || 0
+  const publishedContent =
+    plans?.filter((p) => p.status === "published").length || 0
   const implementedStrategies =
     suggestions?.filter((s) => s.status === "implemented").length || 0
 
-  // Build chart data for last 7 days
   const last7Days = eachDayOfInterval({
     start: subDays(new Date(), 6),
     end: new Date(),
@@ -65,15 +67,16 @@ export default async function AnalyticsPage() {
 
   const chartData = last7Days.map((date) => {
     const dayStart = startOfDay(date)
-    const dayIdeas = ideas?.filter((i) => {
-      const created = new Date(i.created_at)
-      return startOfDay(created).getTime() === dayStart.getTime()
-    }).length || 0
 
-    const dayPlans = plans?.filter((p) => {
-      const created = new Date(p.created_at)
-      return startOfDay(created).getTime() === dayStart.getTime()
-    }).length || 0
+    const dayIdeas =
+      ideas?.filter((i) =>
+        startOfDay(new Date(i.created_at)).getTime() === dayStart.getTime()
+      ).length || 0
+
+    const dayPlans =
+      plans?.filter((p) =>
+        startOfDay(new Date(p.created_at)).getTime() === dayStart.getTime()
+      ).length || 0
 
     return {
       date: format(date, "EEE"),
@@ -93,6 +96,7 @@ export default async function AnalyticsPage() {
             Track your content creation and growth metrics.
           </p>
         </div>
+
         <Badge variant="secondary">
           {limits.analyticsRetentionDays} day retention
         </Badge>
@@ -108,7 +112,9 @@ export default async function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalIdeas}</div>
-            <p className="text-xs text-muted-foreground">Content ideas saved</p>
+            <p className="text-xs text-muted-foreground">
+              Content ideas saved
+            </p>
           </CardContent>
         </Card>
 
@@ -156,7 +162,9 @@ export default async function AnalyticsPage() {
             <DollarSign className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{implementedStrategies}</div>
+            <div className="text-2xl font-bold">
+              {implementedStrategies}
+            </div>
             <p className="text-xs text-muted-foreground">
               Strategies implemented
             </p>
@@ -184,8 +192,7 @@ export default async function AnalyticsPage() {
                 Unlock Advanced Analytics
               </h3>
               <p className="text-sm text-muted-foreground">
-                Upgrade to get 30-day or 1-year analytics history and more
-                insights.
+                Upgrade to get 30-day or 1-year analytics history and more insights.
               </p>
             </div>
             <Button asChild className="mt-4 sm:mt-0">

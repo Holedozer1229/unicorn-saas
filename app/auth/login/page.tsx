@@ -7,15 +7,8 @@ import { signIn } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Loader2, Sparkles } from "lucide-react"
+import { Loader2 } from "lucide-react"
+import UnicornOSLogo from "@/components/ui/UnicornOSLogo"
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -25,9 +18,7 @@ export default function LoginPage() {
   async function handleSubmit(formData: FormData) {
     setLoading(true)
     setError(null)
-
     const result = await signIn(formData)
-
     if (result?.error) {
       setError(result.error)
       setLoading(false)
@@ -35,64 +26,45 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <Sparkles className="h-6 w-6 text-primary-foreground" />
+    <div className="flex min-h-screen items-center justify-center px-4 circuit-grid starfield">
+      <div className="pointer-events-none fixed inset-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-[#00d4ff]/6 blur-[100px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-[#8b5cf6]/6 blur-[80px]" />
+      </div>
+      <div className="relative z-10 w-full max-w-md">
+        <div className="mb-8 flex justify-center">
+          <UnicornOSLogo size={40} />
+        </div>
+        <div className="cosmic-card gradient-border rounded-2xl p-8">
+          <div className="mb-6 text-center">
+            <h1 className="text-2xl font-black text-white">Welcome back</h1>
+            <p className="text-sm text-white/50 mt-1">Sign in to your UnicornOS account</p>
           </div>
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
-          <CardDescription>
-            Sign in to your CreatorOS account
-          </CardDescription>
-        </CardHeader>
-        <form action={handleSubmit}>
-          <CardContent className="space-y-4">
+          <form action={handleSubmit} className="space-y-4">
             {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {error}
-              </div>
+              <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">{error}</div>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
-              />
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-white/70 text-xs font-mono uppercase tracking-wider">Email</Label>
+              <Input id="email" name="email" type="email" placeholder="you@example.com" required autoComplete="email"
+                className="bg-[rgba(0,200,255,0.04)] border-[rgba(0,200,255,0.15)] text-white placeholder:text-white/25 focus:border-[#00d4ff] focus:ring-[#00d4ff]/20 rounded-xl" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Enter your password"
-                required
-                autoComplete="current-password"
-              />
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-white/70 text-xs font-mono uppercase tracking-wider">Password</Label>
+              <Input id="password" name="password" type="password" placeholder="Enter your password" required autoComplete="current-password"
+                className="bg-[rgba(0,200,255,0.04)] border-[rgba(0,200,255,0.15)] text-white placeholder:text-white/25 focus:border-[#00d4ff] focus:ring-[#00d4ff]/20 rounded-xl" />
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full bg-[#00d4ff] hover:bg-[#00bde8] text-[#04040f] font-bold rounded-xl h-11 shadow-[0_0_20px_rgba(0,212,255,0.3)] transition-all mt-2" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              {"Don't have an account? "}
-              <Link
-                href="/auth/sign-up"
-                className="font-medium text-primary hover:underline"
-              >
-                Sign up
-              </Link>
+            <p className="text-center text-sm text-white/40">
+              {"Don&apos;t have an account? "}
+              <Link href="/auth/sign-up" className="text-[#00d4ff] hover:text-[#67e8f9] font-medium transition-colors">Sign up</Link>
             </p>
-          </CardFooter>
-        </form>
-      </Card>
+          </form>
+        </div>
+      </div>
     </div>
   )
 }

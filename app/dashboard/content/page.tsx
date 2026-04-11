@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { ContentEngineClient } from "./content-engine-client"
-import { TIER_LIMITS } from "@/lib/types"
+import { TIER_LIMITS, SubscriptionTier } from "@/lib/types"
 import { getAIGenerationCount } from "@/lib/redis"
 
 export default async function ContentEnginePage() {
   const supabase = await createClient()
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -25,9 +26,20 @@ export default async function ContentEnginePage() {
         .order("created_at", { ascending: false }),
     ])
 
-  const tier = subscription?.tier || "free"
+  // ✅ SAFE TIER RESOLUTION (fixes TypeScript + future Stripe sync issues)
+  const rawTier = subscription?.tier
+
+  const tier: SubscriptionTier =
+    rawTier === "creator" ||
+    rawTier === "pro" ||
+    rawTier === "free"
+      ? rawTier
+      : "free"
+
   const limits = TIER_LIMITS[tier]
+
   const aiGenerations = await getAIGenerationCount(user.id)
+
   const remainingGenerations =
     limits.aiGenerationsPerMonth === -1
       ? -1

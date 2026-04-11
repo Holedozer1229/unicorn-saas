@@ -1,259 +1,288 @@
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
-import {
-  Lightbulb,
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  Sparkles,
-  ArrowRight,
-} from "lucide-react"
-import { TIER_LIMITS } from "@/lib/types"
-import { getAIGenerationCount } from "@/lib/redis"
+"use client";
 
-export default async function DashboardPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+import { useEffect, useState, useCallback } from "react";
+import UnicornOSLogo from "@/components/ui/UnicornOSLogo";
+import { generateShareText } from "@/lib/utils";
+import { createClient } from "@/utils/supabase/client"; // Adjust path if your Supabase client is elsewhere
 
-  if (!user) {
-    redirect("/auth/login")
-  }
+export default function UnicornOSDashboard() {
+  const [idea, setIdea] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [step, setStep] = useState(0);
+  const [animatedScore, setAnimatedScore] = useState(0);
+  const [streamedText, setStreamedText] = useState("");
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [userTier, setUserTier] = useState<'free' | 'creator' | 'pro'>('free');
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
-  // Fetch user data
-  const [
-    { data: profile },
-    { data: subscription },
-    { data: ideas },
-    { data: plans },
-    { data: suggestions },
-  ] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", user.id).single(),
-    supabase.from("subscriptions").select("*").eq("user_id", user.id).single(),
-    supabase
-      .from("content_ideas")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(5),
-    supabase
-      .from("content_plans")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("scheduled_date", { ascending: true })
-      .limit(5),
-    supabase
-      .from("monetization_suggestions")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("status", "new")
-      .limit(3),
-  ])
+  const supabase = createClient();
 
-  const tier = subscription?.tier || "free"
-  const limits = TIER_LIMITS[tier]
-  const aiGenerations = await getAIGenerationCount(user.id)
+  // Fetch user data (including stripe_customer_id and tier) on mount
+  useEffect(() => {
+    async function loadUserData() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          // Redirect to login if needed
+          window.location.href = "/auth/login";
+          return;
+        }
 
-  const stats = [
-    {
-      title: "Content Ideas",
-      value: ideas?.length || 0,
-      icon: Lightbulb,
-      href: "/dashboard/content",
-      color: "text-blue-500",
-    },
-    {
-      title: "Scheduled Posts",
-      value: plans?.filter((p) => p.status === "scheduled").length || 0,
-      icon: Calendar,
-      href: "/dashboard/planner",
-      color: "text-emerald-500",
-    },
-    {
-      title: "Monetization Tips",
-      value: suggestions?.length || 0,
-      icon: DollarSign,
-      href: "/dashboard/monetization",
-      color: "text-amber-500",
-    },
-    {
-      title: "AI Generations",
-      value:
-        limits.aiGenerationsPerMonth === -1
-          ? "Unlimited"
-          : `${aiGenerations}/${limits.aiGenerationsPerMonth}`,
-      icon: Sparkles,
-      href: "/dashboard/settings?tab=billing",
-      color: "text-primary",
-    },
-  ]
+        // Fetch profile with stripe_customer_id and tier
+        const { data: profile } = await supabase
+          .from('profiles') // or 'users' table – adjust to your schema
+          .select('stripe_customer_id, tier')
+          .eq('id', user.id)
+          .single();
 
-  const displayName =
-    profile?.display_name || user.user_metadata?.display_name || "Creator"
+        if (profile) {
+          setCustomerId(profile.stripe_customer_id || null);
+          setUserTier((profile.tier as 'free' | 'creator' | 'pro') || 'free');
+        }
+      } catch (error) {
+        console.error("Failed to load user data:", error);
+      } finally {
+        setIsLoadingUser(false);
+      }
+    }
+
+    loadUserData();
+  }, [supabase]);
+
+  const steps = [
+    "Scanning attention graphs...",
+    "Mapping emotional hooks...",
+    "Simulating audience reaction...",
+    "Running virality model v9...",
+    "Finalizing holographic prediction..."
+  ];
+
+  const runSimulation = useCallback(async () => {
+    if (!idea.trim() || loading) return;
+
+    setLoading(true);
+    setResult(null);
+    setStreamedText("");
+    setStep(0);
+    setAnimatedScore(0);
+
+    for (let i = 0; i < steps.length; i++) {
+      setStep(i);
+      await new Promise((resolve) => setTimeout(resolve, 620));
+    }
+
+    try {
+      const response = await fetch("/api/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idea }),
+      });
+
+      if (!response.body) throw new Error("No response body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        setStreamedText(buffer);
+      }
+
+      const finalData = JSON.parse(buffer.split("\n\n").pop() || "{}");
+      setResult(finalData);
+    } catch (error) {
+      console.error("Simulation error:", error);
+      setStreamedText("Error processing your idea. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [idea, loading]);
+
+  useEffect(() => {
+    if (!result?.score) return;
+
+    let current = 0;
+    const target = Math.floor(result.score);
+    const interval = setInterval(() => {
+      current += Math.max(2, Math.floor((target - current) / 6));
+      if (current >= target) {
+        current = target;
+        clearInterval(interval);
+      }
+      setAnimatedScore(current);
+    }, 32);
+
+    return () => clearInterval(interval);
+  }, [result]);
+
+  const shareText = result?.score ? generateShareText(result.score) : "";
+
+  // Open Stripe Customer Portal
+  const openBillingPortal = async () => {
+    if (!customerId) {
+      alert("No billing account linked. Please upgrade to Creator or Pro.");
+      return;
+    }
+
+    if (userTier === 'free') {
+      alert("Upgrade to Creator or Pro to manage billing.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/webhook/stripe/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId }),
+      });
+
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert("Failed to open billing portal.");
+      }
+    } catch (error) {
+      console.error("Portal error:", error);
+      alert("Unable to open billing portal at this time.");
+    }
+  };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-          Welcome back, {displayName}
-        </h1>
-        <p className="text-muted-foreground">
-          {"Here's what's happening with your content today."}
-        </p>
+    <div className="min-h-screen bg-[#0a0a1f] text-white overflow-hidden relative font-sans">
+      {/* Cosmic Background */}
+      <div className="absolute inset-0 bg-[radial-gradient(at_center,#1a0033_0%,#000000_70%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+
+      {/* Floating Orbs */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-15%] left-[-10%] w-[600px] h-[600px] bg-cyan-400/10 blur-[140px] rounded-full" />
+        <div className="absolute bottom-[-20%] right-[-15%] w-[520px] h-[520px] bg-purple-500/10 blur-[130px] rounded-full" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Link key={stat.title} href={stat.href}>
-            <Card className="transition-shadow hover:shadow-md">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      {/* Top Navigation */}
+      <nav className="relative z-50 flex justify-between items-center px-6 py-6 border-b border-white/10 backdrop-blur-lg">
+        <UnicornOSLogo size={52} />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Recent Ideas</CardTitle>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard/content">
-                View all
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {ideas && ideas.length > 0 ? (
-              <div className="space-y-4">
-                {ideas.slice(0, 3).map((idea) => (
-                  <div
-                    key={idea.id}
-                    className="flex items-start justify-between gap-4"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{idea.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {idea.platform} - {idea.format}
-                      </p>
-                    </div>
-                    <Badge variant="secondary" className="shrink-0">
-                      {idea.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <Lightbulb className="mb-2 h-8 w-8 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">
-                  No content ideas yet
-                </p>
-                <Button asChild variant="link" size="sm" className="mt-2">
-                  <Link href="/dashboard/content">Generate your first idea</Link>
-                </Button>
+        <div className="flex items-center gap-5">
+          <div className="hidden sm:block px-4 py-1 text-xs tracking-widest border border-cyan-400/30 rounded-full text-cyan-400">PRIVATE BETA</div>
+          <button 
+            onClick={openBillingPortal}
+            disabled={isLoadingUser}
+            className="px-6 py-2.5 text-sm font-medium border border-white/30 hover:border-cyan-400 rounded-2xl transition-all active:bg-cyan-400/10 disabled:opacity-50"
+          >
+            Manage Billing
+          </button>
+        </div>
+      </nav>
+
+      <div className="relative z-10 max-w-5xl mx-auto px-5 sm:px-8 pt-16 pb-24">
+        {/* Hero */}
+        <div className="text-center mb-16">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tighter leading-none mb-6">
+            See if your idea will{" "}
+            <span className="bg-gradient-to-r from-cyan-300 via-purple-300 to-violet-300 bg-clip-text text-transparent">go viral</span>
+          </h1>
+          <p className="text-lg sm:text-xl text-white/70 max-w-2xl mx-auto">
+            Real-time audience simulation powered by SphinxOS and Holographic QAOA
+          </p>
+        </div>
+
+        {/* Input Panel */}
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-zinc-950/90 border border-cyan-400/20 rounded-3xl p-8 sm:p-12 backdrop-blur-2xl shadow-2xl">
+            <textarea
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              placeholder="Describe your next viral idea in detail..."
+              className="w-full h-40 bg-transparent resize-none outline-none text-lg placeholder:text-white/50 leading-relaxed"
+              disabled={loading}
+            />
+
+            <button
+              onClick={runSimulation}
+              disabled={loading || !idea.trim()}
+              className="mt-10 w-full py-5 rounded-2xl font-semibold text-lg tracking-wider
+                bg-gradient-to-r from-cyan-500 via-purple-600 to-violet-600 
+                hover:brightness-110 active:scale-[0.985] transition-all duration-300 shadow-lg shadow-cyan-500/30
+                disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? "RUNNING HOLOGRAPHIC SIMULATION..." : "⚡ RUN VIRAL SIMULATION"}
+            </button>
+
+            {loading && (
+              <div className="mt-8 font-mono text-cyan-400 text-sm tracking-[2px] text-center">
+                ▶ {steps[step]}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Upcoming Content</CardTitle>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard/planner">
-                View all
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {plans && plans.filter((p) => p.status === "scheduled").length > 0 ? (
-              <div className="space-y-4">
-                {plans
-                  .filter((p) => p.status === "scheduled")
-                  .slice(0, 3)
-                  .map((plan) => (
-                    <div
-                      key={plan.id}
-                      className="flex items-start justify-between gap-4"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{plan.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {plan.scheduled_date
-                            ? new Date(plan.scheduled_date).toLocaleDateString()
-                            : "No date set"}
-                        </p>
-                      </div>
-                      <Badge className="shrink-0">{plan.platforms[0]}</Badge>
-                    </div>
-                  ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <Calendar className="mb-2 h-8 w-8 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">
-                  No scheduled content
-                </p>
-                <Button asChild variant="link" size="sm" className="mt-2">
-                  <Link href="/dashboard/planner">Schedule your first post</Link>
-                </Button>
+        {/* Results Section */}
+        {(streamedText || result) && (
+          <div className="mt-16 max-w-4xl mx-auto space-y-10">
+            {streamedText && (
+              <div className="bg-zinc-950/80 border border-white/10 rounded-3xl p-10 text-white/80 leading-relaxed text-[15px] backdrop-blur-xl">
+                {streamedText}
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
 
-      {suggestions && suggestions.length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Monetization Suggestions</CardTitle>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard/monetization">
-                View all
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {suggestions.map((suggestion) => (
-                <div
-                  key={suggestion.id}
-                  className="rounded-lg border bg-muted/30 p-4"
-                >
-                  <div className="mb-2 flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-amber-500" />
-                    <Badge variant="outline" className="text-xs">
-                      {suggestion.difficulty}
-                    </Badge>
-                  </div>
-                  <p className="font-medium">{suggestion.title}</p>
-                  {suggestion.potential_revenue && (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Potential: ${(suggestion.potential_revenue / 100).toFixed(0)}/mo
-                    </p>
-                  )}
+            {result && (
+              <div className="border border-cyan-400/30 bg-gradient-to-br from-zinc-950 to-black rounded-3xl p-14 text-center backdrop-blur-2xl">
+                <div className="uppercase tracking-[4px] text-xs text-cyan-400/80 mb-2">VIRALITY PREDICTION SCORE</div>
+                <div className="text-[128px] font-bold leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-300 to-purple-300">
+                  {animatedScore}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <div className="text-3xl text-white/50 -mt-6">/ 100</div>
+
+                {animatedScore >= 85 && (
+                  <div className="mt-8 text-3xl font-medium text-green-400 animate-pulse">🔥 HIGH VIRAL POTENTIAL DETECTED</div>
+                )}
+              </div>
+            )}
+
+            {result && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-zinc-950/80 border border-purple-400/20 rounded-3xl p-10">
+                  <div className="text-purple-400 font-semibold mb-4 text-lg">Holographic Insight</div>
+                  <p className="text-white/80 leading-relaxed">{result.insight || "Structural coherence analyzed via holographic regularization."}</p>
+                </div>
+
+                <div className="bg-zinc-950/80 border border-cyan-400/20 rounded-3xl p-10">
+                  <div className="text-cyan-400 font-semibold mb-4 text-lg">Recommended Viral Upgrades</div>
+                  <ul className="space-y-4 text-white/80 text-[15px]">
+                    {result.improvements?.map((item: string, i: number) => (
+                      <li key={i} className="flex gap-3">• {item}</li>
+                    )) || <li>Advanced upgrades available in Creator and Pro tiers.</li>}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {result && (
+              <div className="text-center pt-8">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareText);
+                    alert("Share text copied to clipboard");
+                  }}
+                  className="px-12 py-4 bg-white text-black rounded-2xl font-semibold text-lg hover:bg-white/90 transition flex items-center gap-3 mx-auto active:scale-95"
+                >
+                  🚀 Share Result
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="text-center text-xs text-white/40 pb-12">
+        UNICORN OS • THE INTELLIGENCE OPERATING SYSTEM • POWERED BY SPHINXOS + HOLOGRAPHIC QAOA
+      </div>
     </div>
-  )
+  );
 }

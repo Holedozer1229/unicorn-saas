@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { generateText, Output } from "ai"
 import { z } from "zod"
 import { trackAIGeneration, getAIGenerationCount } from "@/lib/redis"
-import { TIER_LIMITS } from "@/lib/types"
+import { TIER_LIMITS, SubscriptionTier } from "@/lib/types"
 
 const suggestionSchema = z.object({
   suggestions: z.array(
@@ -19,6 +19,7 @@ const suggestionSchema = z.object({
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
+
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -27,15 +28,24 @@ export async function POST(request: Request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Check subscription limits
+    // Get subscription
     const { data: subscription } = await supabase
       .from("subscriptions")
       .select("tier")
       .eq("user_id", user.id)
       .single()
 
-    const tier = subscription?.tier || "free"
-    
+    const rawTier = subscription?.tier
+
+    // Normalize tier safely (YOUR REAL TIERS: free | creator | pro)
+    const tier: SubscriptionTier =
+      rawTier === "free" ||
+      rawTier === "creator" ||
+      rawTier === "pro"
+        ? rawTier
+        : "free"
+
+    // Free users blocked from monetization AI
     if (tier === "free") {
       return Response.json(
         { error: "Monetization AI requires Creator or Pro plan" },
@@ -93,8 +103,8 @@ Provide 5 monetization strategies with:
     // Track usage
     await trackAIGeneration(user.id)
 
-    // Save suggestions to database
-    if (result.output?.suggestions) {
+    // Save suggestions
+    if (result.output?.suggestions?.length) {
       const suggestionsToInsert = result.output.suggestions.map((s) => ({
         user_id: user.id,
         suggestion_type: s.type,
@@ -106,7 +116,9 @@ Provide 5 monetization strategies with:
         ai_generated: true,
       }))
 
-      await supabase.from("monetization_suggestions").insert(suggestionsToInsert)
+      await supabase
+        .from("monetization_suggestions")
+        .insert(suggestionsToInsert)
     }
 
     // Log usage event
@@ -119,7 +131,9 @@ Provide 5 monetization strategies with:
       },
     })
 
-    return Response.json({ suggestions: result.output?.suggestions || [] })
+    return Response.json({
+      suggestions: result.output?.suggestions || [],
+    })
   } catch (error) {
     console.error("Monetization AI error:", error)
     return Response.json(

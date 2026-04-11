@@ -6,6 +6,7 @@ import { getAIGenerationCount } from "@/lib/redis"
 
 export default async function MonetizationPage() {
   const supabase = await createClient()
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -25,13 +26,26 @@ export default async function MonetizationPage() {
         .order("created_at", { ascending: false }),
     ])
 
-  const tier = subscription?.tier || "free"
+  /**
+   * ✅ FIX: Strictly type-safe tier resolution
+   */
+  const fallbackTier = "free"
+
+  const tierRaw = subscription?.tier ?? fallbackTier
+
+  const tier: keyof typeof TIER_LIMITS =
+    tierRaw in TIER_LIMITS
+      ? (tierRaw as keyof typeof TIER_LIMITS)
+      : fallbackTier
+
   const limits = TIER_LIMITS[tier]
+
   const aiGenerations = await getAIGenerationCount(user.id)
+
   const remainingGenerations =
     limits.aiGenerationsPerMonth === -1
       ? -1
-      : limits.aiGenerationsPerMonth - aiGenerations
+      : Math.max(limits.aiGenerationsPerMonth - aiGenerations, 0)
 
   return (
     <MonetizationClient

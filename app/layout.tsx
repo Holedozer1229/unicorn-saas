@@ -14,9 +14,9 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Creator Capital Markets OS - AI-Powered Content Strategy Platform",
+  title: "UnicornOS - The Intelligence Operating System",
   description:
-    "Generate viral content strategies, discover top creators, track growth metrics, and optimize monetization. The AI-powered operating system for creator capital markets.",
+    "The intelligence operating system for modern creators. AI-powered content, scheduling, monetization, and analytics.",
   keywords: [
     "creator tools",
     "content creation",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#030712" },
+    { media: "(prefers-color-scheme: dark)", color: "#04040f" },
   ],
   width: "device-width",
   initialScale: 1,
