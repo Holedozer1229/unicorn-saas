@@ -21,9 +21,10 @@ export const metadata: Metadata = {
     "creator tools",
     "content creation",
     "AI content",
-    "social media management",
+    "viral content",
     "monetization",
-    "analytics",
+    "creator market",
+    "content strategy",
   ],
 }
 

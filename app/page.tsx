@@ -48,6 +48,13 @@ function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
 }
 const WORDS = ["Creators","Models","Influencers","Podcasters","Streamers","Artists"]
 
+const ctaVariants = [
+  { id: '1', text: 'Start Free' },
+  { id: '2', text: 'Go Viral Today' },
+  { id: '3', text: 'Get Your First Viral Post' },
+  { id: '4', text: 'Turn Content into Income' },
+]
+
 export default function HomePage() {
   const [mouse, setMouse] = useState({ x: -999, y: -999 })
   const [wordIdx, setWordIdx] = useState(0)
